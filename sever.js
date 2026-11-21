@@ -48,8 +48,8 @@ const server = http.createServer((req, res) => {
                     apiRes.on('data', chunk => { dados += chunk; });
                     apiRes.on('end', () => {
                         try {
+                            const json = JSON.parse(dados);
                             const respostaIA = json.choices[0].message.content;
-                            const respostaIA = (json.choices && json.choices && json.choices.message && json.choices.message.content) || dados;
                             res.writeHead(200, { 'Content-Type': 'application/json' });
                             res.end(JSON.stringify({ resposta: respostaIA }));
                         } catch {
