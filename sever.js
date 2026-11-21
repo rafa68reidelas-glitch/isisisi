@@ -66,6 +66,8 @@ const server = http.createServer((req, res) => {
     }
 });
 
-server.listen(3001, () => {
-    console.log('Back-end Node rodando em http://localhost:3001');
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log('Back-end Node rodando na porta ' + PORT);
 });
+
