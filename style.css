@@ -1,0 +1,46 @@
+body{
+    background: linear-gradient(aqua,rgb(255, 0, 221));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    
+}
+
+.painel{
+    display: flex;
+    flex-direction: column;
+    color: aqua;
+    padding: 100px;
+    width: 600px;
+    border-radius: 30px;
+    box-shadow: 10px 20px 30px aqua;
+    text-shadow: 0 0 15px aqua;
+}
+
+button{
+ display: flex;
+ justify-content: center;
+ 
+  margin-top: 15px;
+  padding: 15px;
+  width: 100px;
+  margin-left: 240px;
+  border-radius: 30px;
+  border: none;
+}
+
+
+h1{
+   display: flex;
+   justify-content: center;
+}
+
+button:hover{
+    transition: 0.3s ease-in-out;
+    background: linear-gradient(aqua,purple);
+    box-shadow: 10px 20px 30px aqua;
+    
+}
+

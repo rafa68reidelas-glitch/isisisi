@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ia r</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://puter.com"></script>
+
+
+
+</head>
+<body>
+    <div class="painel">
+        <h1>bem vindo a ia r</h1>
+        <p id="textoResposta"></p>
+        <input type="text" id="campoPergunta" placeholder="pergunte qualquer coisa">
+        <button id="btnEnviar">Enviar</button>
+
+    <div>
+
+         
+    <script>
+    const input = document.getElementById('campoPergunta');
+    const botao = document.getElementById('btnEnviar');
+    const respostaEl = document.getElementById('textoResposta');
+
+    async function enviarPergunta() {
+        const pergunta = input.value.trim();
+        if (!pergunta) return;
+
+        respostaEl.innerText = "Pensando...";
+        input.value = "";
+
+        try {
+            const res = await fetch('http://localhost:3001/perguntar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pergunta })
+            });
+
+            const dados = await res.json();
+            if (dados.erro) throw new Error(dados.erro);
+
+            respostaEl.innerText = dados.resposta;
+        } catch (error) {
+            respostaEl.innerText = "Erro: " + error.message;
+        }
+    }
+
+    botao.addEventListener('click', enviarPergunta);
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') enviarPergunta();
+    });
+</script>
+
+    
+
+    
+
+    
+</body>
+</html>
