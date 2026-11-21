@@ -33,11 +33,12 @@
         input.value = "";
 
         try {
-            const res = await fetch('http://localhost:3001/perguntar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pergunta })
-            });
+           const res = await fetch('https://onrender.com', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pergunta })
+});
+
 
             const dados = await res.json();
             if (dados.erro) throw new Error(dados.erro);
