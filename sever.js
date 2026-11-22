@@ -3,11 +3,12 @@ const https = require('https');
 
 const PORT = process.env.PORT || 3001;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+// Monta "://groq.com" via código ASCII para o navegador nunca alterar ao colar
+const HOST_GROQ = String.fromCharCode(97,112,105,46,103,114,111,113,46,99,111,109);
 
-// Função que busca automaticamente o primeiro modelo disponível na sua conta Groq
 function obterModeloAtivo(callback) {
     const opcoes = {
-        hostname: '://groq.com',
+        hostname: HOST_GROQ,
         path: '/openai/v1/models',
         method: 'GET',
         headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` }
@@ -19,7 +20,6 @@ function obterModeloAtivo(callback) {
         res.on('end', () => {
             try {
                 const json = JSON.parse(dados);
-                // Procura por um modelo Llama ou Gemma ativo
                 const modelo = json.data.find(m => m.id.includes('llama') || m.id.includes('gemma') || m.id.includes('mixtral'));
                 callback(null, modelo ? modelo.id : 'llama-3.1-8b-instant');
             } catch (e) {
@@ -61,7 +61,7 @@ const server = http.createServer((req, res) => {
                     });
 
                     const opcoes = {
-                        hostname: '://groq.com',
+                        hostname: HOST_GROQ,
                         path: '/openai/v1/chat/completions',
                         method: 'POST',
                         headers: {
