@@ -4,6 +4,31 @@ const https = require('https');
 const PORT = process.env.PORT || 3001;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+// Função que busca automaticamente o primeiro modelo disponível na sua conta Groq
+function obterModeloAtivo(callback) {
+    const opcoes = {
+        hostname: '://groq.com',
+        path: '/openai/v1/models',
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` }
+    };
+
+    https.get(opcoes, (res) => {
+        let dados = '';
+        res.on('data', chunk => { dados += chunk; });
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(dados);
+                // Procura por um modelo Llama ou Gemma ativo
+                const modelo = json.data.find(m => m.id.includes('llama') || m.id.includes('gemma') || m.id.includes('mixtral'));
+                callback(null, modelo ? modelo.id : 'llama-3.1-8b-instant');
+            } catch (e) {
+                callback(e);
+            }
+        });
+    }).on('error', (e) => callback(e));
+}
+
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
@@ -28,45 +53,48 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const { pergunta } = JSON.parse(body);
-                const payload = JSON.stringify({
-                    model: 'llama-3.3-70b-versatile',
-                    messages: [{ role: 'user', content: pergunta }]
-                });
 
-                const opcoes = {
-                    hostname: 'api' + '.groq.com',
-                    path: '/openai/v1/chat/completions',
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${GROQ_API_KEY}`,
-                        'Content-Length': Buffer.byteLength(payload)
-                    }
-                };
-
-                const apiReq = https.request(opcoes, (apiRes) => {
-                    let dados = '';
-                    apiRes.on('data', chunk => { dados += chunk; });
-                    apiRes.on('end', () => {
-                        try {
-                            const json = JSON.parse(dados);
-                            const respostaIA = json.choices[0].message.content;
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({ resposta: respostaIA }));
-                        } catch {
-                            res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({ resposta: "Erro da API: " + dados }));
-                        }
+                obterModeloAtivo((err, modeloEscolhido) => {
+                    const payload = JSON.stringify({
+                        model: modeloEscolhido || 'llama-3.1-8b-instant',
+                        messages: [{ role: 'user', content: pergunta }]
                     });
-                });
 
-                apiReq.on('error', (erro) => {
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ erro: 'Falha no Groq: ' + erro.message }));
-                });
+                    const opcoes = {
+                        hostname: '://groq.com',
+                        path: '/openai/v1/chat/completions',
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${GROQ_API_KEY}`,
+                            'Content-Length': Buffer.byteLength(payload)
+                        }
+                    };
 
-                apiReq.write(payload);
-                apiReq.end();
+                    const apiReq = https.request(opcoes, (apiRes) => {
+                        let dados = '';
+                        apiRes.on('data', chunk => { dados += chunk; });
+                        apiRes.on('end', () => {
+                            try {
+                                const json = JSON.parse(dados);
+                                const respostaIA = json.choices[0].message.content;
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ resposta: respostaIA }));
+                            } catch {
+                                res.writeHead(200, { 'Content-Type': 'application/json' });
+                                res.end(JSON.stringify({ resposta: "Erro da API: " + dados }));
+                            }
+                        });
+                    });
+
+                    apiReq.on('error', (erro) => {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ erro: 'Falha no Groq: ' + erro.message }));
+                    });
+
+                    apiReq.write(payload);
+                    apiReq.end();
+                });
             } catch (erro) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ erro: 'Erro interno: ' + erro.message }));
