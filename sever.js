@@ -3,10 +3,9 @@ const https = require('https');
 
 const PORT = process.env.PORT || 3001;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-// Monta "://groq.com" via código ASCII para o navegador nunca alterar ao colar
 const HOST_GROQ = String.fromCharCode(97,112,105,46,103,114,111,113,46,99,111,109);
 
-function obterModeloAtivo(callback) {
+function obterModeloChat(callback) {
     const opcoes = {
         hostname: HOST_GROQ,
         path: '/openai/v1/models',
@@ -20,7 +19,12 @@ function obterModeloAtivo(callback) {
         res.on('end', () => {
             try {
                 const json = JSON.parse(dados);
-                const modelo = json.data.find(m => m.id.includes('llama') || m.id.includes('gemma') || m.id.includes('mixtral'));
+                // Filtra apenas modelos de chat (ignora modelos whisper de áudio ou guard)
+                const modelo = json.data.find(m => 
+                    (m.id.includes('llama') || m.id.includes('gemma') || m.id.includes('mixtral')) &&
+                    !m.id.includes('whisper') &&
+                    !m.id.includes('guard')
+                );
                 callback(null, modelo ? modelo.id : 'llama-3.1-8b-instant');
             } catch (e) {
                 callback(e);
@@ -54,10 +58,13 @@ const server = http.createServer((req, res) => {
             try {
                 const { pergunta } = JSON.parse(body);
 
-                obterModeloAtivo((err, modeloEscolhido) => {
+                obterModeloChat((err, modeloEscolhido) => {
                     const payload = JSON.stringify({
                         model: modeloEscolhido || 'llama-3.1-8b-instant',
-                        messages: [{ role: 'user', content: pergunta }]
+                        messages: [
+                            { role: 'system', content: 'Você é a IA R, uma assistente inteligente e simpática que sempre responde em português do Brasil.' },
+                            { role: 'user', content: pergunta }
+                        ]
                     });
 
                     const opcoes = {
@@ -77,7 +84,7 @@ const server = http.createServer((req, res) => {
                         apiRes.on('end', () => {
                             try {
                                 const json = JSON.parse(dados);
-                                const respostaIA = json.choices[0].message.content;
+                                const respostaIA = json.choices.message.content;
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ resposta: respostaIA }));
                             } catch {
