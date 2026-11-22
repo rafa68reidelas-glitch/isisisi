@@ -20,21 +20,22 @@ function obterModeloChat(callback) {
             try {
                 const json = JSON.parse(dados);
                 if (!json.data) {
-                    return callback(new Error("Chave API inválida ou sem modelos: " + dados));
+                    return callback(new Error("Chave API inválida: " + dados));
                 }
-                // Pega qualquer modelo de texto ativo (ignora áudio whisper, guard ou tts)
-                const modelo = json.data.find(m => 
+                // Ignora modelos de voz (orpheus, whisper, tts, playai) e segurança (guard)
+                const modelosTexto = json.data.filter(m => 
                     !m.id.includes('whisper') &&
                     !m.id.includes('guard') &&
                     !m.id.includes('tts') &&
-                    !m.id.includes('playai')
+                    !m.id.includes('playai') &&
+                    !m.id.includes('orpheus')
                 );
-                if (modelo) {
-                    callback(null, modelo.id);
-                } else {
-                    const lista = json.data.map(m => m.id).join(', ');
-                    callback(new Error("Nenhum modelo de chat encontrado. Disponíveis: " + lista));
-                }
+                // Dá preferência para modelos llama, qwen ou gemma
+                const preferido = modelosTexto.find(m => 
+                    m.id.includes('llama') || m.id.includes('qwen') || m.id.includes('gemma')
+                ) || modelosTexto[0];
+
+                callback(null, preferido ? preferido.id : 'llama-3.1-8b-instant');
             } catch (e) {
                 callback(e);
             }
