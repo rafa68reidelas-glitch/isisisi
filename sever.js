@@ -19,13 +19,22 @@ function obterModeloChat(callback) {
         res.on('end', () => {
             try {
                 const json = JSON.parse(dados);
-                // Filtra apenas modelos de chat (ignora modelos whisper de áudio ou guard)
+                if (!json.data) {
+                    return callback(new Error("Chave API inválida ou sem modelos: " + dados));
+                }
+                // Pega qualquer modelo de texto ativo (ignora áudio whisper, guard ou tts)
                 const modelo = json.data.find(m => 
-                    (m.id.includes('llama') || m.id.includes('gemma') || m.id.includes('mixtral')) &&
                     !m.id.includes('whisper') &&
-                    !m.id.includes('guard')
+                    !m.id.includes('guard') &&
+                    !m.id.includes('tts') &&
+                    !m.id.includes('playai')
                 );
-                callback(null, modelo ? modelo.id : 'llama-3.1-8b-instant');
+                if (modelo) {
+                    callback(null, modelo.id);
+                } else {
+                    const lista = json.data.map(m => m.id).join(', ');
+                    callback(new Error("Nenhum modelo de chat encontrado. Disponíveis: " + lista));
+                }
             } catch (e) {
                 callback(e);
             }
@@ -59,8 +68,14 @@ const server = http.createServer((req, res) => {
                 const { pergunta } = JSON.parse(body);
 
                 obterModeloChat((err, modeloEscolhido) => {
+                    if (err) {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ resposta: err.message }));
+                        return;
+                    }
+
                     const payload = JSON.stringify({
-                        model: modeloEscolhido || 'llama-3.1-8b-instant',
+                        model: modeloEscolhido,
                         messages: [
                             { role: 'system', content: 'Você é a IA R, uma assistente inteligente e simpática que sempre responde em português do Brasil.' },
                             { role: 'user', content: pergunta }
@@ -84,12 +99,12 @@ const server = http.createServer((req, res) => {
                         apiRes.on('end', () => {
                             try {
                                 const json = JSON.parse(dados);
-                                const respostaIA = json.choices.message.content;
+                                const respostaIA = json.choices[0].message.content;
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ resposta: respostaIA }));
                             } catch {
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                                res.end(JSON.stringify({ resposta: "Erro da API: " + dados }));
+                                res.end(JSON.stringify({ resposta: "Erro da API (" + modeloEscolhido + "): " + dados }));
                             }
                         });
                     });
