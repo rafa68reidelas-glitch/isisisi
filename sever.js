@@ -29,7 +29,7 @@ function perguntarIA(pergunta, callback) {
                 if (json.choices && json.choices[0] && json.choices[0].message) {
                     callback(null, json.choices[0].message.content);
                 } else if (json.error && json.error.code === 'FREE_LIMIT') {
-                    callback(null, "Aguarde alguns segundos antes de mandar outra pergunta (limite gratuito atingido).");
+                    callback(null, "Aguarde alguns segundos antes de mandar outra pergunta .");
                 } else {
                     callback(null, "A IA está ocupada agora, tente enviar novamente em instantes.");
                 }
