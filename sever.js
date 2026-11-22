@@ -22,7 +22,6 @@ function obterModeloChat(callback) {
                 if (!json.data) {
                     return callback(new Error("Chave API inválida: " + dados));
                 }
-                // Ignora modelos de voz (orpheus, whisper, tts, playai) e segurança (guard)
                 const modelosTexto = json.data.filter(m => 
                     !m.id.includes('whisper') &&
                     !m.id.includes('guard') &&
@@ -30,10 +29,10 @@ function obterModeloChat(callback) {
                     !m.id.includes('playai') &&
                     !m.id.includes('orpheus')
                 );
-                // Dá preferência para modelos llama, qwen ou gemma
-                const preferido = modelosTexto.find(m => 
-                    m.id.includes('llama') || m.id.includes('qwen') || m.id.includes('gemma')
-                ) || modelosTexto[0];
+                // Prioriza Llama ou Gemma (têm limite maior), e só usa Qwen se não houver outro
+                const preferido = modelosTexto.find(m => m.id.includes('llama') || m.id.includes('gemma'))
+                    || modelosTexto.find(m => m.id.includes('qwen'))
+                    || modelosTexto;
 
                 callback(null, preferido ? preferido.id : 'llama-3.1-8b-instant');
             } catch (e) {
@@ -77,8 +76,9 @@ const server = http.createServer((req, res) => {
 
                     const payload = JSON.stringify({
                         model: modeloEscolhido,
+                        max_tokens: 500,
                         messages: [
-                            { role: 'system', content: 'Você é a IA R, uma assistente inteligente e simpática que sempre responde em português do Brasil.' },
+                            { role: 'system', content: 'Você é a IA R, uma assistente inteligente e simpática que responde de forma clara e objetiva em português do Brasil.' },
                             { role: 'user', content: pergunta }
                         ]
                     });
@@ -100,7 +100,7 @@ const server = http.createServer((req, res) => {
                         apiRes.on('end', () => {
                             try {
                                 const json = JSON.parse(dados);
-                                const respostaIA = json.choices[0].message.content;
+                                const respostaIA = json.choices.message.content;
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ resposta: respostaIA }));
                             } catch {
