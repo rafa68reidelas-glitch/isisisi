@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
                 });
 
                 const opcoes = {
-                    hostname: '://groq.com',
+                    hostname: 'api' + '.groq.com',
                     path: '/openai/v1/chat/completions',
                     method: 'POST',
                     headers: {
