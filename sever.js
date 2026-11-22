@@ -55,7 +55,7 @@ const server = http.createServer((req, res) => {
                             res.end(JSON.stringify({ resposta: respostaIA }));
                         } catch {
                             res.writeHead(200, { 'Content-Type': 'application/json' });
-                            res.end(JSON.stringify({ resposta: "Erro ao ler resposta: " + dados }));
+                            res.end(JSON.stringify({ resposta: "Erro da API: " + dados }));
                         }
                     });
                 });
