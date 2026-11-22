@@ -2,47 +2,7 @@ const http = require('http');
 const https = require('https');
 
 const PORT = process.env.PORT || 3001;
-
-function perguntarIA(pergunta, callback) {
-    const payload = JSON.stringify({
-        model: 'openai',
-        messages: [{ role: 'user', content: pergunta }]
-    });
-
-    const opcoes = {
-        hostname: 'text.pollinations.ai',
-        path: '/openai',
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(payload),
-            'User-Agent': 'Mozilla/5.0'
-        }
-    };
-
-    const apiReq = https.request(opcoes, (apiRes) => {
-        let dados = '';
-        apiRes.on('data', chunk => { dados += chunk; });
-        apiRes.on('end', () => {
-            try {
-                const json = JSON.parse(dados);
-                if (json.choices && json.choices[0] && json.choices[0].message) {
-                    callback(null, json.choices[0].message.content);
-                } else if (json.error && json.error.code === 'FREE_LIMIT') {
-                    callback(null, "Aguarde alguns segundos antes de mandar outra pergunta .");
-                } else {
-                    callback(null, "A IA está ocupada agora, tente enviar novamente em instantes.");
-                }
-            } catch {
-                callback(null, dados);
-            }
-        });
-    });
-
-    apiReq.on('error', (erro) => callback(erro));
-    apiReq.write(payload);
-    apiReq.end();
-}
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,7 +17,7 @@ const server = http.createServer((req, res) => {
 
     if (req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('Servidor da IA online!');
+        res.end('Servidor da IA online com Groq!');
         return;
     }
 
@@ -68,15 +28,45 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const { pergunta } = JSON.parse(body);
-                perguntarIA(pergunta, (erro, respostaIA) => {
-                    if (erro) {
-                        res.writeHead(500, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ erro: 'Falha na IA: ' + erro.message }));
-                    } else {
-                        res.writeHead(200, { 'Content-Type': 'application/json' });
-                        res.end(JSON.stringify({ resposta: respostaIA }));
-                    }
+                const payload = JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [{ role: 'user', content: pergunta }]
                 });
+
+                const opcoes = {
+                    hostname: '://groq.com',
+                    path: '/openai/v1/chat/completions',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Length': Buffer.byteLength(payload)
+                    }
+                };
+
+                const apiReq = https.request(opcoes, (apiRes) => {
+                    let dados = '';
+                    apiRes.on('data', chunk => { dados += chunk; });
+                    apiRes.on('end', () => {
+                        try {
+                            const json = JSON.parse(dados);
+                            const respostaIA = json.choices[0].message.content;
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ resposta: respostaIA }));
+                        } catch {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ resposta: "Erro ao ler resposta: " + dados }));
+                        }
+                    });
+                });
+
+                apiReq.on('error', (erro) => {
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ erro: 'Falha no Groq: ' + erro.message }));
+                });
+
+                apiReq.write(payload);
+                apiReq.end();
             } catch (erro) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ erro: 'Erro interno: ' + erro.message }));
