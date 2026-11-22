@@ -29,10 +29,9 @@ function obterModeloChat(callback) {
                     !m.id.includes('playai') &&
                     !m.id.includes('orpheus')
                 );
-                // Prioriza Llama ou Gemma (têm limite maior), e só usa Qwen se não houver outro
                 const preferido = modelosTexto.find(m => m.id.includes('llama') || m.id.includes('gemma'))
                     || modelosTexto.find(m => m.id.includes('qwen'))
-                    || modelosTexto;
+                    || modelosTexto.at(0);
 
                 callback(null, preferido ? preferido.id : 'llama-3.1-8b-instant');
             } catch (e) {
@@ -100,7 +99,7 @@ const server = http.createServer((req, res) => {
                         apiRes.on('end', () => {
                             try {
                                 const json = JSON.parse(dados);
-                                const respostaIA = json.choices.message.content;
+                                const respostaIA = json.choices.at(0).message.content;
                                 res.writeHead(200, { 'Content-Type': 'application/json' });
                                 res.end(JSON.stringify({ resposta: respostaIA }));
                             } catch {
@@ -129,3 +128,4 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
     console.log('Servidor rodando na porta ' + PORT);
 });
+
