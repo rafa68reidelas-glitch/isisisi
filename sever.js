@@ -54,7 +54,7 @@ const server = http.createServer((req, res) => {
 
     if (req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('Servidor da IA online com Groq!');
+        res.end('Servidor da IA online com Groq e Memoria!');
         return;
     }
 
@@ -64,7 +64,8 @@ const server = http.createServer((req, res) => {
 
         req.on('end', () => {
             try {
-                const { pergunta } = JSON.parse(body);
+                const dadosRecebidos = JSON.parse(body);
+                const historico = dadosRecebidos.historico || [{ role: 'user', content: dadosRecebidos.pergunta }];
 
                 obterModeloChat((err, modeloEscolhido) => {
                     if (err) {
@@ -73,13 +74,15 @@ const server = http.createServer((req, res) => {
                         return;
                     }
 
+                    const mensagensCompletas = [
+                        { role: 'system', content: 'Você é a IA R, uma assistente inteligente, simpática e com boa memória que sempre responde de forma natural e objetiva em português do Brasil.' },
+                        ...historico
+                    ];
+
                     const payload = JSON.stringify({
                         model: modeloEscolhido,
                         max_tokens: 500,
-                        messages: [
-                            { role: 'system', content: 'Você é a IA R, uma assistente inteligente e simpática que responde de forma clara e objetiva em português do Brasil.' },
-                            { role: 'user', content: pergunta }
-                        ]
+                        messages: mensagensCompletas
                     });
 
                     const opcoes = {
@@ -128,4 +131,3 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
     console.log('Servidor rodando na porta ' + PORT);
 });
-
