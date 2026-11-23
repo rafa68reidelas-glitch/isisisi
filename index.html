@@ -22,45 +22,50 @@
          
     <script>
      const input = document.getElementById('campoPergunta');
-    const botao = document.getElementById('btnEnviar');
-    const respostaEl = document.getElementById('textoResposta');
+const botao = document.getElementById('btnEnviar');
+const respostaEl = document.getElementById('textoResposta');
 
-    // Lista que guarda a memória da conversa atual
-    let historicoConversa = [];
+const URL_SERVIDOR = 'https://' + 'isisisi' + '.onrender.com' + '/perguntar';
 
-    async function enviarPergunta() {
-        const pergunta = input.value.trim();
-        if (!pergunta) return;
+let historicoConversa = [];
 
-        respostaEl.innerText = "Pensando...";
-        input.value = "";
+async function enviarPergunta() {
+    const pergunta = input.value.trim();
+    if (!pergunta) return;
 
-        // Salva a sua pergunta na memória
-        historicoConversa.push({ role: 'user', content: pergunta });
+    respostaEl.innerText = "Pensando...";
+    input.value = "";
 
-        // Mantém as últimas 20 mensagens para não estourar o limite da API
-        if (historicoConversa.length > 20) {
-            historicoConversa = historicoConversa.slice(-20);
-        }
+    historicoConversa.push({ role: 'user', content: pergunta });
 
-        try {
-            const res = await fetch('https://onrender.com', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ historico: historicoConversa })
-            });
-
-            const dados = await res.json();
-            if (dados.erro) throw new Error(dados.erro);
-
-            // Salva a resposta da IA na memória também
-            historicoConversa.push({ role: 'assistant', content: dados.resposta });
-
-            respostaEl.innerText = dados.resposta;
-        } catch (error) {
-            respostaEl.innerText = "Erro: " + error.message;
-        }
+    if (historicoConversa.length > 20) {
+        historicoConversa = historicoConversa.slice(-20);
     }
+
+    try {
+        const res = await fetch(URL_SERVIDOR, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ historico: historicoConversa })
+        });
+
+        const dados = await res.json();
+        if (dados.erro) throw new Error(dados.erro);
+
+        historicoConversa.push({ role: 'assistant', content: dados.resposta });
+        respostaEl.innerText = dados.resposta;
+    } catch (error) {
+        respostaEl.innerText = "Erro: " + error.message;
+    }
+}
+
+botao.addEventListener('click', enviarPergunta);
+input.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        enviarPergunta();
+    }
+});
+
 </script>
 
     
