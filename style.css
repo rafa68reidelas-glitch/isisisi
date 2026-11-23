@@ -44,3 +44,9 @@ button:hover{
     
 }
 
+input{
+   padding: 15px;
+    border-radius: 30px;
+    border: none; 
+}
+
