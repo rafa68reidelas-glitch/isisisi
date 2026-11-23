@@ -81,7 +81,7 @@ const server = http.createServer((req, res) => {
 
                     const payload = JSON.stringify({
                         model: modeloEscolhido,
-                        max_tokens: 500,
+                        max_tokens: 1024,
                         messages: mensagensCompletas
                     });
 
